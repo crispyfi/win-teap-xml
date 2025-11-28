@@ -116,11 +116,46 @@
     color: #e0e0e0;
   }
 
+  .readme {
+  margin-top: 15px;
+  padding: 14px 16px;
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  font-size: 0.95em;
+  line-height: 1.5em;
+  color: #ccc;
+  }
+
+  .readme code {
+  display: inline-block;
+  background-color: #000;
+  padding: 3px 6px;
+  border-radius: 6px;
+  color: #9ad1ff;
+  margin-top: 5px;
+  }
+  
 </style>
 </head>
 <body>
 
 <h2>Windows 11 Wi-Fi TEAP XML Generator</h2>
+
+<div class="readme">
+  Generates an XML file for Windows 11 Wi-Fi TEAP Authentication to be deployed using an Intune Custom Configuration Profile using the following OMA-URI:<br>
+  <code>./Vendor/MSFT/WiFi/Profile/&lt;SSID Name&gt;/WlanXml</code>
+
+  <br><br>
+  <strong>Configuration includes:</strong>
+  <ul>
+    <li>Outer identity of <code>anonymous</code></li>
+    <li>EAP-TLS for both TEAP inner-methods</li>
+    <li>Server Certificate validation</li>
+    <li>Prompt to authorize new servers disabled</li>
+    <li>Simple Certificate selection with 'Client Authentication' EKU and specific Issuing CA</li>
+  </ul>
+</div>
 
 <label>SSID Name</label>
 <input id="ssid" type="text" placeholder="e.g. CrispyFi">
