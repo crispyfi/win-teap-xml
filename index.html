@@ -205,15 +205,6 @@ async function getThumbprint(file, stripLeadingZeros = false) {
   return formatThumbprint(new Uint8Array(hashBuffer), stripLeadingZeros);
 }
 
-function getCNFromCert(file) {
-  return new Promise(async resolve => {
-    let buffer = await file.arrayBuffer();
-    const text = new TextDecoder().decode(buffer);
-    const match = text.match(/CN=([^,\n]+)/i);
-    resolve(match ? match[1] : "Unknown");
-  });
-}
-
 function ssidToHex(ssid) {
   return Array.from(ssid)
     .map(c => c.charCodeAt(0).toString(16).padStart(2,'0'))
@@ -227,12 +218,10 @@ async function handleRootCert(e) {
 
   const thumbNoZeros = await getThumbprint(file, true);
   const thumbNormal = await getThumbprint(file, false);
-  const cn = await getCNFromCert(file);
 
   e.target.dataset.nospaces = thumbNoZeros;
   e.target.dataset.thumbprint = thumbNormal;
 
-  document.getElementById("rootCertInfo").innerText = `CN: ${cn}\nThumbprint: ${thumbNormal}`;
 }
 
 async function handleIssuerCert(e) {
@@ -240,9 +229,9 @@ async function handleIssuerCert(e) {
   if(!file) return;
 
   const thumb = await getThumbprint(file, false);
-  const cn = await getCNFromCert(file);
 
-  document.getElementById("issuerCertInfo").innerText = `CN: ${cn}\nThumbprint: ${thumb}`;
+  e.target.dataset.thumbprint = thumb;
+
 }
 
 document.getElementById("rootCert").addEventListener("change", handleRootCert);
@@ -276,15 +265,6 @@ function generateXML() {
 
   document.getElementById("output").value = xml+'\n';
 }
-
-
-
-
-
-
-
-
-
 
 function downloadXML() {
   const ssid = document.getElementById("ssid").value;
