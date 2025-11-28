@@ -179,39 +179,74 @@
   </MSM>
 </WLANProfile>`;
 
-function formatThumbprint(bytes, stripLeadingZeros=false) {
+function formatThumbprint(bytes, stripLeadingZeros = false) {
   return Array.from(bytes)
-    .map(b => stripLeadingZeros ? b.toString(16).replace(/^0+/, '')||'0' : b.toString(16).padStart(2,'0'))
+    .map(b => {
+      const h = b.toString(16).padStart(2, '0');
+      return stripLeadingZeros ? h.replace(/^0+/, '') || '0' : h;
+    })
     .join(' ');
 }
 
-async function getThumbprint(file, stripLeadingZeros=false) {
+async function getThumbprint(file, stripLeadingZeros = false) {
   let buffer = await file.arrayBuffer();
   let bytes = new Uint8Array(buffer);
   const text = new TextDecoder().decode(bytes);
-  if(text.includes("BEGIN CERTIFICATE")) {
-    const base64 = text.replace(/-----.*?CERTIFICATE-----/g,"").replace(/\s+/g,"");
+
+  if (text.includes("BEGIN CERTIFICATE")) {
+    const base64 = text.replace(/-----.*?CERTIFICATE-----/g, "").replace(/\s+/g, "");
     const raw = atob(base64);
     bytes = new Uint8Array(raw.length);
-    for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
-    buffer=bytes.buffer;
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+    buffer = bytes.buffer;
   }
+
   const hashBuffer = await crypto.subtle.digest("SHA-1", buffer);
   return formatThumbprint(new Uint8Array(hashBuffer), stripLeadingZeros);
 }
 
+function getCNFromCert(file) {
+  return new Promise(async resolve => {
+    let buffer = await file.arrayBuffer();
+    const text = new TextDecoder().decode(buffer);
+    const match = text.match(/CN=([^,\n]+)/i);
+    resolve(match ? match[1] : "Unknown");
+  });
+}
+
 function ssidToHex(ssid) {
-  return Array.from(ssid).map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  return Array.from(ssid)
+    .map(c => c.charCodeAt(0).toString(16).padStart(2,'0'))
+    .join('')
+    .toUpperCase();
 }
 
-async function handleCertUpload(e, stripLeadingZeros=false) {
-  const file=e.target.files[0]; if(!file) return;
-  const thumb = await getThumbprint(file, stripLeadingZeros);
-  e.target.dataset.thumbprint = thumb;
+async function handleRootCert(e) {
+  const file = e.target.files[0]; 
+  if(!file) return;
+
+  const thumbNoZeros = await getThumbprint(file, true);
+  const thumbNormal = await getThumbprint(file, false);
+  const cn = await getCNFromCert(file);
+
+  e.target.dataset.nospaces = thumbNoZeros;
+  e.target.dataset.thumbprint = thumbNormal;
+
+  document.getElementById("rootCertInfo").innerText = `CN: ${cn}\nThumbprint: ${thumbNormal}`;
 }
 
-document.getElementById("rootCert").addEventListener("change", e=>handleCertUpload(e,true));
-document.getElementById("issuerCert").addEventListener("change", e=>handleCertUpload(e,false));
+async function handleIssuerCert(e) {
+  const file = e.target.files[0]; 
+  if(!file) return;
+
+  const thumb = await getThumbprint(file, false);
+  const cn = await getCNFromCert(file);
+
+  document.getElementById("issuerCertInfo").innerText = `CN: ${cn}\nThumbprint: ${thumb}`;
+}
+
+document.getElementById("rootCert").addEventListener("change", handleRootCert);
+document.getElementById("issuerCert").addEventListener("change", handleIssuerCert);
 
 function showToast(msg="Copied to clipboard") {
   const toast = document.getElementById("toast");
@@ -234,13 +269,22 @@ function generateXML() {
   const xml = template
     .replaceAll("{{SSID_NAME}}", ssid)
     .replaceAll("{{SSID_HEX}}", ssidToHex(ssid))
-    .replaceAll("{{AUTH_SERVER_CN}}", serverCN)
-    .replaceAll("{{ROOT_CA_THUMBPRINT}}", root.dataset.thumbprint||"")
-    .replaceAll("{{ROOT_CA_HASH_NOSPACES}}", root.dataset.thumbprint?.replace(/\s+/g,'')||"")
-    .replaceAll("{{CLIENT_ISSUER_CA_THUMBPRINT}}", issuer.dataset.thumbprint||"");
+    .replaceAll("{{AUTH_SERVER_CN}}", document.getElementById("servercn").value)
+    .replaceAll("{{ROOT_CA_THUMBPRINT}}", root.dataset.thumbprint || "")
+    .replaceAll("{{ROOT_CA_HASH_NOSPACES}}", root.dataset.nospaces || "")
+    .replaceAll("{{CLIENT_ISSUER_CA_THUMBPRINT}}", document.getElementById("issuerCert").dataset.thumbprint || "");
 
   document.getElementById("output").value = xml+'\n';
 }
+
+
+
+
+
+
+
+
+
 
 function downloadXML() {
   const ssid = document.getElementById("ssid").value;
