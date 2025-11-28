@@ -1,5 +1,6 @@
 # win-teap-xml
-Generates an XML file for Windows 11 Wi-Fi TEAP Authentication
+Generates an XML file for Windows 11 Wi-Fi TEAP Authentication to be deployed using an Intune Custom Configuration Profile using the following OMA-URI:
+`./Vendor/MSFT/WiFi/Profile/<SSID Name>/WlanXml`
 
 Configuration includes:
 - Outer identity of 'anonymous'
